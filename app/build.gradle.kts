@@ -14,7 +14,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.wangzan101.mika"
+        // 改名版(克隆改造,Apache-2.0 第 4(b) 条改动标注):applicationId 由上游 com.wangzan101.mika 改为 com.phoneagent.mika,与官方版/自研版并存;namespace 与源码包名不变。
+        applicationId = "com.phoneagent.mika"
         minSdk = 30
         targetSdk = 35
         versionCode = 34

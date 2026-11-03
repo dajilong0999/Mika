@@ -18,7 +18,7 @@ import urllib.request
 
 VERSION = "0.1.0"
 API = "/api/v1"
-PHONE_FILES = "/sdcard/Android/data/com.wangzan101.mika/files"
+PHONE_FILES = "/sdcard/Android/data/com.phoneagent.mika/files"  # 改名版:外部文件目录随 applicationId=com.phoneagent.mika
 INFO_FILE = PHONE_FILES + "/mcp-usb.json"
 CONNECT_SCRIPT = PHONE_FILES + "/connect-computer.sh"
 MAX_RESPONSE = 4 * 1024 * 1024
