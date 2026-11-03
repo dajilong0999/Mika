@@ -19,15 +19,20 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
-/** 电脑能用的工具:只给高层的「把事交给 Mika」,具体怎么做由手机上的 Mika 自己决定。 */
+/**
+ * 电脑能用的工具:高层的「把事交给 Mika」(具体怎么做由手机上的 Mika 自己决定);
+ * 另可由构造方挂上设备工具(唤醒/解锁)与直连工具(phone_*:外部 Agent 一步步直接操作手机,不经手机端模型)。
+ */
 class McpTaskTools(
     private val service: RemoteTaskService,
     device: DeviceAccess? = null,
+    direct: DirectPhoneControl? = null,
 ) {
-    constructor(tasks: RemoteTasks, pollMs: Long = 250, device: DeviceAccess? = null) :
-        this(RemoteTaskService(tasks, pollMs), device)
+    constructor(tasks: RemoteTasks, pollMs: Long = 250, device: DeviceAccess? = null, direct: DirectPhoneControl? = null) :
+        this(RemoteTaskService(tasks, pollMs), device, direct)
 
     private val deviceTools = device?.let(::McpDeviceTools)
+    private val directTools = direct?.let(::McpDirectTools)
     class ToolError(message: String) : Exception(message)
 
     data class Tool(val name: String, val description: String, val schema: JsonObject, val readOnly: Boolean)
@@ -75,9 +80,12 @@ class McpTaskTools(
             }, readOnly = true),
     ) + deviceTools?.tools.orEmpty()
 
+    /** 直连工具的定义要开会话才拿得到,不进构造时就定死的 [tools];列工具与按名查时才现拼。 */
+    private val allTools: List<Tool> get() = tools + directTools?.tools.orEmpty()
+
     /** MCP 的工具定义(tools/list 的一项)。 */
     fun definitions(): JsonArray = buildJsonArray {
-        tools.forEach { t ->
+        allTools.forEach { t ->
             add(buildJsonObject {
                 put("name", t.name)
                 put("description", t.description)
@@ -91,7 +99,7 @@ class McpTaskTools(
         }
     }
 
-    fun has(name: String) = tools.any { it.name == name }
+    fun has(name: String) = allTools.any { it.name == name }
 
     /** 只做协议参数转换和 MCP 展示;业务规则由两个入口共用的 service 执行。 */
     suspend fun call(name: String, args: JsonObject): JsonObject = try {
@@ -125,8 +133,11 @@ class McpTaskTools(
                     }
                 }
             }
-            else -> if (deviceTools?.tools?.any { it.name == name } == true) deviceTools.call(name, args)
-                else throw ToolError("Unknown tool: $name")
+            else -> when {
+                directTools?.has(name) == true -> directTools.call(name, args)
+                deviceTools?.tools?.any { it.name == name } == true -> deviceTools.call(name, args)
+                else -> throw ToolError("Unknown tool: $name")
+            }
         }
     } catch (e: RemoteTaskError) {
         // 按错误类型换回原 MCP 客户端看到的说法(带 MCP 工具名);共用服务不包含 MCP 命令名。

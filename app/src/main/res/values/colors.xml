@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 克隆件桌面图标(金太阳鹦鹉)的自适应图标底色,与素材边缘的暖米色一致。 -->
+    <color name="parrot_icon_bg">#E9DDD3</color>
+</resources>

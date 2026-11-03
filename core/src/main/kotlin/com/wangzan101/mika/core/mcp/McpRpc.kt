@@ -220,6 +220,8 @@ class McpRpc(
 
         const val INSTRUCTIONS = "Mika is an AI agent running on the user's Android phone. Hand it whole tasks with mika_run_task " +
             "(it operates the phone's apps and browser itself), then follow them with mika_wait_task. Answer its questions with mika_answer. " +
+            "When phone_* direct tools are listed, you can also operate the phone step by step yourself (observe, launch, tap, type) " +
+            "without the on-device model or any API key configured on the phone. " +
             "Payments, confirmations and steps handed to the user can only be done by the user on the phone."
 
         private val json = Json { ignoreUnknownKeys = true }

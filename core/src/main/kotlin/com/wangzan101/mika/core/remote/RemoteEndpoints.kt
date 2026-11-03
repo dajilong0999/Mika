@@ -1,6 +1,7 @@
 package com.wangzan101.mika.core.remote
 
 import com.wangzan101.mika.core.device.DeviceAccess
+import com.wangzan101.mika.core.mcp.DirectPhoneControl
 import com.wangzan101.mika.core.mcp.McpRpc
 import com.wangzan101.mika.core.mcp.McpTaskTools
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,19 +15,19 @@ import java.net.InetAddress
  * 而不是出现了再拒绝。经网关来的请求默认不给,见 docs/dev/remote-mcp.md。
  */
 class RemoteEndpoints(tasks: RemoteTasks, private val serverVersion: String, private val clock: () -> Long = System::currentTimeMillis,
-    device: DeviceAccess? = null) {
+    device: DeviceAccess? = null, direct: DirectPhoneControl? = null) {
     private val service = RemoteTaskService(tasks)
     private val clients = LinkedHashMap<String, Long>()
     private val mutable = MutableStateFlow(RemoteActivity())
     val activity = mutable.asStateFlow()
 
-    /** 一套协议入口:任务 API 加 MCP。两套只差带不带手机屏幕能力,任务服务和近期活动共用。 */
-    private inner class Surface(device: DeviceAccess?) {
+    /** 一套协议入口:任务 API 加 MCP。两套只差带不带手机屏幕能力,任务服务和近期活动共用。直连工具跟设备工具同一门槛:只在带设备能力的这套出现。 */
+    private inner class Surface(device: DeviceAccess?, direct: DirectPhoneControl?) {
         val api = RemoteTaskApi(service, serverVersion, device)
-        val rpc = McpRpc(McpTaskTools(service, device), serverVersion) { remote, name -> seen(remote, name) }
+        val rpc = McpRpc(McpTaskTools(service, device, direct = direct), serverVersion) { remote, name -> seen(remote, name) }
     }
-    private val withDevice = Surface(device)
-    private val tasksOnly = if (device == null) withDevice else Surface(null)
+    private val withDevice = Surface(device, direct)
+    private val tasksOnly = if (device == null) withDevice else Surface(null, null)
 
     /** [deviceAccess] 为 false 时这次请求看不到唤醒、解锁和锁屏状态。 */
     fun handle(req: HttpRequest, deviceAccess: Boolean = true): HttpResponse {
